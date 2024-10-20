@@ -1,0 +1,97 @@
+name: Django Financial App CI/CD
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Splitting tests to run in parallel
+        part: [1, 2, 3]
+    steps:
+      # Step 1: Checkout the code from GitHub repository
+      - name: Checkout code from repository
+        uses: actions/checkout@v2
+
+      # Step 2: Set up Python environment
+      - name: Set up Python environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      # Step 3: Install Dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Step 4: Create .env file with TESTING=True for Tests
+      - name: Create .env file for Tests
+        run: |
+          cat <<EOF > .env
+          DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
+          DATABASE_ENGINE=${{ secrets.DATABASE_ENGINE }}
+          DATABASE_NAME=${{ secrets.DATABASE_NAME }}
+          DATABASE_USER=${{ secrets.DATABASE_USER }}
+          DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}
+          DATABASE_HOST=${{ secrets.DATABASE_HOST }}
+          DATABASE_PORT=${{ secrets.DATABASE_PORT }}
+          CELERY_BROKER_URL=${{ secrets.CELERY_BROKER_URL }}
+          CELERY_RESULT_BACKEND=${{ secrets.CELERY_RESULT_BACKEND }}
+          ALPHAVANTAGE_API_KEYS=${{ secrets.ALPHAVANTAGE_API_KEYS }}
+          DEBUG=True
+          TESTING=True
+          EOF
+
+
+      - name: Run Tests - Part ${{ matrix.part }}
+        run: |
+
+          if [ "${{ matrix.part }}" == "1" ]; then
+            python manage.py test stocks.tests.BacktestStrategyTest.test_backtest_strategy_success
+            python manage.py test stocks.tests.BacktestStrategyTest.test_backtest_strategy_invalid_investment
+          elif [ "${{ matrix.part }}" == "2" ]; then
+            python manage.py test stocks.tests.BacktestStrategyTest.test_backtest_strategy_invalid_window
+            python manage.py test stocks.tests.BacktestStrategyTest.test_backtest_strategy_no_data
+          elif [ "${{ matrix.part }}" == "3" ]; then
+            python manage.py test stocks.tests.BacktestStrategyTest.test_backtest_strategy_edge_case_single_data_point
+            python manage.py test stocks.tests.BacktestStrategyTest.test_backtest_strategy_insufficient_data_for_ma
+            python manage.py test stocks.tests.BacktestStrategyTest.test_backtest_strategy_large_investment
+            python manage.py test stocks.tests.BacktestStrategyTest.test_backtest_strategy_moving_average_edge_case
+            python manage.py test stocks.tests.BacktestStrategyTest.test_backtest_strategy_zero_investment
+          fi
+        env:
+          DJANGO_SETTINGS_MODULE: financial_project.settings
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set Up SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+
+      - name: Deploy to EC2 via SSH
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd ${{ secrets.EC2_PATH }}
+            # Only rebuild Docker if necessary, saving time during re-deployment
+            if [[ "$(git rev-parse HEAD)" != "$(git rev-parse @{u})" ]]; then
+              sudo docker-compose down
+              sudo docker-compose up -d --build
+            fi
+          EOF
+
+
+
