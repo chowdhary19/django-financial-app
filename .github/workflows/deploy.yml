@@ -40,12 +40,11 @@ jobs:
           TESTING=True
           EOF
 
-      # Step 5: Run Tests Using pytest
-      - name: Run Tests with pytest in Parallel
-        run: pytest -n auto --ds=financial_project.settings --maxfail=5 --disable-warnings
+      # Step 5: Run Tests Using pytest with Explicit Test Module in Dot Notation
+      - name: Run Tests with pytest
+        run: pytest stocks.tests --ds=financial_project.settings --maxfail=5 --disable-warnings -v
         env:
           DJANGO_SETTINGS_MODULE: financial_project.settings
-      # Using `-n auto` to run tests in parallel across available CPU cores
 
   deploy:
     runs-on: ubuntu-latest
@@ -61,16 +60,15 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      # Step 3: Verify .env on EC2 and Deploy
+      # Step 3: Deploy to EC2 via SSH
       - name: Deploy to EC2 via SSH
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             cd ${{ secrets.EC2_PATH }}
-            # Verify that the correct .env file is in place
-            if [ ! -f .env ]; then
-              echo ".env file not found. Deployment aborted."
-              exit 1
+            # Only rebuild Docker if necessary, saving time during re-deployment
+            if [[ "$(git rev-parse HEAD)" != "$(git rev-parse @{u})" ]]; then
+              sudo docker-compose down
+              sudo docker-compose up -d --build
             fi
-            # Log the .env contents without exposing sensitive data for verification
-            grep "DATABASE_ENGINE" .env
-            # Proceed with deploymen
+          EOF
+
