@@ -22,21 +22,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Set TESTING=True
+        run: |
+          echo "TESTING=True" >> .env
+
       - name: Run tests
         run: |
           python manage.py test stocks.tests
         env:
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
           DEBUG: 'True'
-          DATABASE_ENGINE: django.db.backends.postgresql
-          DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
-          DATABASE_USER: ${{ secrets.DATABASE_USER }}
-          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
-          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
-          DATABASE_PORT: ${{ secrets.DATABASE_PORT }}
-          CELERY_BROKER_URL: ${{ secrets.CELERY_BROKER_URL }}
-          CELERY_RESULT_BACKEND: ${{ secrets.CELERY_RESULT_BACKEND }}
-          ALPHAVANTAGE_API_KEYS: ${{ secrets.ALPHAVANTAGE_API_KEYS }}
+          TESTING: 'True'  
+
+      - name: Set TESTING=False after tests
+        run: |
+          sed -i "s/TESTING=True/TESTING=False/g" .env
 
   deploy:
     runs-on: ubuntu-latest
@@ -57,4 +57,5 @@ jobs:
             sudo docker-compose down
             sudo docker-compose up -d --build
           EOF
+
 
