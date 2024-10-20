@@ -1,4 +1,4 @@
-name: Django Financial App CI/CD
+name: Django Financial App CI/CD 
 
 on:
   push:
@@ -40,9 +40,10 @@ jobs:
           TESTING=True
           EOF
 
-      # Step 5: Run Tests Using pytest with Explicit Test Module in Dot Notation
+
+      # Step 5: Run Tests Using pytest
       - name: Run Tests with pytest
-        run: pytest stocks.tests --ds=financial_project.settings --maxfail=5 --disable-warnings -v
+        run: pytest stocks/tests.py --ds=financial_project.settings --maxfail=5 --disable-warnings -v
         env:
           DJANGO_SETTINGS_MODULE: financial_project.settings
 
