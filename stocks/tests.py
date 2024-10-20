@@ -1,9 +1,9 @@
 from django.test import TestCase
+from unittest.mock import patch
 from .tasks import backtest_strategy
 from .models import StockData
 from datetime import datetime
 import pandas as pd
-
 
 class BacktestStrategyTest(TestCase):
     
@@ -62,10 +62,15 @@ class BacktestStrategyTest(TestCase):
         df.set_index('date', inplace=True)
         return df
 
-    def test_backtest_strategy_success(self):
+    @patch('stocks.tasks.cache.get')
+    @patch('stocks.tasks.cache.set')
+    def test_backtest_strategy_success(self, mock_cache_set, mock_cache_get):
         """ 
         Test a successful scenario for backtesting, ensuring that valid input parameters produce expected results.
         """
+        # Mock the cache response
+        mock_cache_get.return_value = None
+
         df = self.get_stock_data_df(self.SYMBOL)
         result = backtest_strategy(initial_investment=self.INITIAL_INVESTMENT, symbol=self.SYMBOL, buy_window=2, sell_window=3, df=df)
         self.assertIn('final_balance', result)
@@ -73,41 +78,57 @@ class BacktestStrategyTest(TestCase):
         self.assertGreaterEqual(result['number_of_trades'], 0, "Number of trades should be non-negative")
         self.assertGreaterEqual(result['total_ROI_percentage'], -100, "Total return should not be unrealistic")
 
-    def test_backtest_strategy_invalid_investment(self):
+    @patch('stocks.tasks.cache.get')
+    @patch('stocks.tasks.cache.set')
+    def test_backtest_strategy_invalid_investment(self, mock_cache_set, mock_cache_get):
         """ 
         Test the behavior when an invalid initial investment (negative value) is provided.
         This should result in an appropriate error response.
         """
+        mock_cache_get.return_value = None
+
         df = self.get_stock_data_df(self.SYMBOL)
         result = backtest_strategy(initial_investment=-1000, symbol=self.SYMBOL, buy_window=2, sell_window=3, df=df)
         self.assertEqual(result.get('status'), 400, "Invalid investment should return status 400")
         self.assertIn('error', result, "Response should contain an error message for negative investment")
 
-    def test_backtest_strategy_invalid_window(self):
+    @patch('stocks.tasks.cache.get')
+    @patch('stocks.tasks.cache.set')
+    def test_backtest_strategy_invalid_window(self, mock_cache_set, mock_cache_get):
         """ 
         Test when the buy window is greater than or equal to the sell window.
         This should result in an appropriate error response.
         """
+        mock_cache_get.return_value = None
+
         df = self.get_stock_data_df(self.SYMBOL)
         result = backtest_strategy(initial_investment=self.INITIAL_INVESTMENT, symbol=self.SYMBOL, buy_window=3, sell_window=2, df=df)
         self.assertEqual(result.get('status'), 400, "Buy window greater than or equal to sell window should return status 400")
         self.assertIn('error', result, "Response should contain an error message for invalid window sizes")
 
-    def test_backtest_strategy_no_data(self):
+    @patch('stocks.tasks.cache.get')
+    @patch('stocks.tasks.cache.set')
+    def test_backtest_strategy_no_data(self, mock_cache_set, mock_cache_get):
         """ 
         Test the behavior when attempting to backtest on a symbol that doesn't exist in the database.
         The response should indicate a data availability issue.
         """
+        mock_cache_get.return_value = None
+
         df = self.get_stock_data_df('NON_EXISTENT')
         result = backtest_strategy(initial_investment=self.INITIAL_INVESTMENT, symbol='NON_EXISTENT', buy_window=2, sell_window=3, df=df)
         self.assertEqual(result.get('status'), 400, "Backtest on non-existent symbol should return status 400")
         self.assertIn('error', result, "Response should contain an error message for missing data")
 
-    def test_backtest_strategy_edge_case_single_data_point(self):
+    @patch('stocks.tasks.cache.get')
+    @patch('stocks.tasks.cache.set')
+    def test_backtest_strategy_edge_case_single_data_point(self, mock_cache_set, mock_cache_get):
         """ 
         Test the backtest logic with only a single data point available.
         This should result in an error due to insufficient data.
         """
+        mock_cache_get.return_value = None
+
         StockData.objects.filter(symbol=self.SYMBOL).delete()
         self.create_stock_data(self.SYMBOL, [(datetime(2022, 1, 1), 100, 105, 110, 95, 1000)])
         
@@ -116,7 +137,9 @@ class BacktestStrategyTest(TestCase):
         self.assertEqual(result.get('status'), 400, "Not enough data should return status 400")
         self.assertIn('error', result, "Response should contain an error message for insufficient data")
 
-    def test_backtest_strategy_insufficient_data_for_ma(self):
+    @patch('stocks.tasks.cache.get')
+    @patch('stocks.tasks.cache.set')
+    def test_backtest_strategy_insufficient_data_for_ma(self, mock_cache_set, mock_cache_get):
         """ 
         Test the scenario where there isn't enough data to calculate the moving averages required by the strategy.
         """
@@ -130,8 +153,10 @@ class BacktestStrategyTest(TestCase):
         result = backtest_strategy(initial_investment=self.INITIAL_INVESTMENT, symbol=self.SYMBOL, buy_window=5, sell_window=10, df=df)
         self.assertEqual(result.get('status'), 400, "Not enough data to calculate moving averages should return status 400")
         self.assertIn('error', result, "Response should contain an error message for insufficient data for moving averages")
-
-    def test_backtest_strategy_large_investment(self):
+        
+    @patch('stocks.tasks.cache.get')
+    @patch('stocks.tasks.cache.set')
+    def test_backtest_strategy_large_investment(self, mock_cache_set, mock_cache_get):
         """ 
         Test the backtest with a very large initial investment to ensure no overflow issues or unexpected failures.
         """
@@ -140,7 +165,9 @@ class BacktestStrategyTest(TestCase):
         self.assertIn('final_balance', result, "Large investment should still provide a final balance")
         self.assertGreaterEqual(result['final_balance'], 0, "Final balance should be non-negative even for large investments")
 
-    def test_backtest_strategy_moving_average_edge_case(self):
+    @patch('stocks.tasks.cache.get')
+    @patch('stocks.tasks.cache.set')
+    def test_backtest_strategy_moving_average_edge_case(self, mock_cache_set, mock_cache_get):
         """ 
         Test the scenario where the buy and sell windows are set very high to assess the strategy's handling of such parameters.
         """
@@ -152,7 +179,9 @@ class BacktestStrategyTest(TestCase):
         else:
             self.assertIn('final_balance', result, "Should calculate final balance if enough data exists")
 
-    def test_backtest_strategy_zero_investment(self):
+    @patch('stocks.tasks.cache.get')
+    @patch('stocks.tasks.cache.set')
+    def test_backtest_strategy_zero_investment(self, mock_cache_set, mock_cache_get):
         """ 
         Test backtest with zero initial investment to verify correct error handling.
         """
