@@ -1,5 +1,5 @@
 
-# Django Financial Analysis and Backtesting Application
+# Django Financial Analysis and Backtesting Application 
 
 - **Author:** Yuvraj Singh Chowdhary  
 - **GitHub:** [chowdhary19](https://github.com/chowdhary19)  
@@ -8,7 +8,7 @@
 
 ---
 
-## Overview
+## Overview 
 
 This Django-based financial analysis and backtesting application enables insights into stock performance, backtesting strategies, and stock price predictions. It is designed for **production-grade** usage while also being developer-friendly with support for automated deployment via **GitHub Actions** and **AWS services** for scalability.
 
@@ -259,13 +259,6 @@ The project uses **GitHub Actions** for CI/CD. Add the `.github/workflows/deploy
 - Implement **Kubernetes** for container orchestration.
 - Integrate **ELK stack** for real-time monitoring.
 - Enhance prediction accuracy using **Deep Learning** models.
-
----
-
-## Author
-
-- **GitHub:** [chowdhary19](https://github.com/chowdhary19)  
-- **LinkedIn:** [Yuvraj Singh Chowdhary](https://www.linkedin.com/in/connectyuvraj/) 
 
 ---
 
