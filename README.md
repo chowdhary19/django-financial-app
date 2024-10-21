@@ -239,7 +239,7 @@ The project uses **GitHub Actions** for CI/CD. Add the `.github/workflows/deploy
 
 ### 5. Export Data
 
-**Endpoint**: `http://13.127.145.76:8000/stocks/fetch/?symbol=AAPL`
+**Endpoint**: `http://13.127.145.76:8000/stocks/export/?symbol=AAPL`
 
 **Method**: `GET`
 
