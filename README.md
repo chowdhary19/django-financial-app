@@ -260,9 +260,7 @@ The project uses **GitHub Actions** for CI/CD. Add the `.github/workflows/deploy
 - Integrate **ELK stack** for real-time monitoring.
 - Enhance prediction accuracy using **Deep Learning** models.
 
----
 
-This **README** is designed to explain every aspect of the application setup and deployment, making it straightforward for developers at any level to get started while challenging enough for seasoned engineers.
 
 
 
